@@ -52,6 +52,7 @@ uv run cli-draw artwork.txt --save output.txt
 - `b`: change brush character
 - `c`: clear
 - `u`: undo
+- `e`: eraser
 - `s`: save
 - `y`: copy ANSI-colored output to clipboard
 - `q` or `Esc`: quit
@@ -84,13 +85,11 @@ Example:
     { "id": 5, "name": "magenta", "hex": "#FF00FF" },
     { "id": 6, "name": "cyan", "hex": "#00FFFF" },
     { "id": 7, "name": "white", "hex": "#FFFFFF" }
-  ],
-  "brushes": ["#", "*", ".", " ", "o", "x", "@", "+"]
+  ]
 }
 ```
 
 You can change:
 - `colors`: the 8 colors used by keys `0` to `7`
-- `brushes`: the default brush characters available in the config
 
 Color values should be hex strings like `#FF0000`.
