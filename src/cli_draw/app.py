@@ -312,6 +312,9 @@ class App:
         if key == ord("b"):
             self.begin_brush_selection()
             return True
+        if key == ord("e"):
+            self.brush_char = " "
+            return True
         if key == ord("t"):
             self.begin_text_mode()
             return True
@@ -338,6 +341,7 @@ class App:
             "BRUSH INPUT" if self.set_brush_mode
             else "TEXT INPUT" if self.text_mode
             else "PLACE TEXT" if self.text_pending
+            else "ERASER" if self.brush_char == " "
             else "DRAW"
         )
         source_label = self.source_path.name if self.source_path else "new"
@@ -379,7 +383,7 @@ class App:
             swatches.append(label)
         palette_line = " colors " + " ".join(swatches)
         info_line = (
-            " draw:mouse  brush:b  text:t  clear:c  undo:u  save:s  copy:y  quit:q/esc "
+            " draw:mouse  brush:b  text:t  clear:c  undo:u  save:s  copy:y  eraser:e  quit:q/esc "
         )
         message_line = f" {self.message}" if self.message else ""
 
