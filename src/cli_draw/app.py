@@ -39,6 +39,9 @@ class App:
         self.message = "Ready"
         self.undo_stack: list[list[list[Cell]]] = []
         self.set_brush_mode = False
+        self.text_mode = False
+        self.text_buffer = ""
+        self.text_pending = ""
         self.source_path = source_path
         self.save_path = save_path or DEFAULT_SAVE_PATH
         self.ansi_to_color_index = {ansi: index for index, (_, ansi, _) in enumerate(self.colors)}
@@ -187,6 +190,19 @@ class App:
         self.set_brush_mode = True
         self.message = "Brush mode: press any printable key, Esc to cancel"
 
+    def begin_text_mode(self):
+        self.text_mode = True
+        self.text_buffer = ""
+        self.message = "Text: type your text, Enter to confirm, Esc to cancel"
+
+    def place_text(self, x: int, y: int):
+        for i, char in enumerate(self.text_pending):
+            px = x + i
+            if 0 <= px < self.canvas_width and 0 <= y < self.canvas_height:
+                self.cells[y][px] = Cell(char, self.color_index)
+        self.text_pending = ""
+        self.message = "Text placed"
+
     def paint(self, x: int, y: int):
         if not (0 <= x < self.canvas_width and 0 <= y < self.canvas_height):
             return
@@ -229,6 +245,12 @@ class App:
         if not (0 <= canvas_y < self.canvas_height):
             return
 
+        if self.text_pending:
+            if state & (curses.BUTTON1_PRESSED | curses.BUTTON1_CLICKED):
+                self.save_state()
+                self.place_text(x, canvas_y)
+            return
+
         if state & (curses.BUTTON1_PRESSED | curses.BUTTON1_CLICKED | curses.BUTTON1_DOUBLE_CLICKED):
             self.save_state()
             self.drawing = True
@@ -260,11 +282,38 @@ class App:
                 self.message = f"Brush set to '{self.brush_char}'"
             return True
 
+        if self.text_mode:
+            if key == 27:
+                self.text_mode = False
+                self.text_buffer = ""
+                self.message = "Text canceled"
+                return True
+            if key == 10:
+                if self.text_buffer:
+                    self.text_pending = self.text_buffer
+                    self.message = f"Click to place: '{self.text_pending}'"
+                else:
+                    self.message = "Empty text, canceled"
+                self.text_mode = False
+                self.text_buffer = ""
+                return True
+            if key in (8, 127, curses.KEY_BACKSPACE):
+                self.text_buffer = self.text_buffer[:-1]
+                self.message = f"Text: '{self.text_buffer}'" if self.text_buffer else "Text: (empty)"
+                return True
+            if 32 <= key <= 126:
+                self.text_buffer += chr(key)
+                self.message = f"Text: '{self.text_buffer}'"
+            return True
+
         if key == ord("c"):
             self.clear_canvas()
             return True
         if key == ord("b"):
             self.begin_brush_selection()
+            return True
+        if key == ord("t"):
+            self.begin_text_mode()
             return True
         if key == ord("u"):
             self.undo()
@@ -285,7 +334,12 @@ class App:
         return True
 
     def draw_top_bar(self, width: int):
-        mode = "BRUSH INPUT" if self.set_brush_mode else "DRAW"
+        mode = (
+            "BRUSH INPUT" if self.set_brush_mode
+            else "TEXT INPUT" if self.text_mode
+            else "PLACE TEXT" if self.text_pending
+            else "DRAW"
+        )
         source_label = self.source_path.name if self.source_path else "new"
         save_label = self.save_path.name
         status = (
@@ -325,7 +379,7 @@ class App:
             swatches.append(label)
         palette_line = " colors " + " ".join(swatches)
         info_line = (
-            " draw:mouse  brush:b  clear:c  undo:u  save:s  copy:y  quit:q/esc "
+            " draw:mouse  brush:b  text:t  clear:c  undo:u  save:s  copy:y  quit:q/esc "
         )
         message_line = f" {self.message}" if self.message else ""
 
